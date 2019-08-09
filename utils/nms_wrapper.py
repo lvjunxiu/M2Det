@@ -5,9 +5,11 @@
 # Written by Ross Girshick
 # --------------------------------------------------------
 
-from .nms.cpu_nms import cpu_nms, cpu_soft_nms
-from .nms.gpu_nms import gpu_nms
-
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+from nms.cpu_nms import cpu_soft_nms
+# from nms.gpu_nms import gpu_nms
 
 # def nms(dets, thresh, force_cpu=False):
 #     """Dispatch to either CPU or GPU NMS implementations."""
@@ -20,12 +22,13 @@ from .nms.gpu_nms import gpu_nms
 #         return cpu_nms(dets, thresh)
 
 
-def nms(dets, thresh, force_cpu=False):
+def nms_wr(dets, thresh, force_cpu=False):
     """Dispatch to either CPU or GPU NMS implementations."""
 
     if dets.shape[0] == 0:
         return []
     if force_cpu:
-        return cpu_soft_nms(dets, thresh, method = 1)
-        #return cpu_nms(dets, thresh)
-    return gpu_nms(dets, thresh)
+        return cpu_soft_nms(dets, thresh, method=1)
+        # return cpu_nms(dets, thresh)
+    # return gpu_nms(dets, thresh)
+    return cpu_soft_nms(dets, thresh, method=1)

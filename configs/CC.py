@@ -7,8 +7,6 @@ from importlib import import_module
 from addict import Dict
 
 
-
-
 class ConfigDict(Dict):
 
     def __missing__(self, name):
@@ -50,7 +48,7 @@ def check_file_exist(filename, msg_tmpl='file "{}" does not exist'):
     if not osp.isfile(filename):
         raise FileNotFoundError(msg_tmpl.format(filename))
 
-        
+
 class Config(object):
     """A facility for config and config files.
     It supports common file formats as configs: python/json/yaml. The interface

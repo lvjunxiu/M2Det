@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 print_info(' ----------------------------------------------------------------------\n'
            '|                       M2Det Demo Program                             |\n'
-           ' ----------------------------------------------------------------------', ['yellow','bold'])
+           ' ----------------------------------------------------------------------', ['yellow', 'bold'])
 
 global cfg
 cfg = Config.fromfile(args.config)
@@ -32,10 +32,10 @@ anchor_config = anchors(cfg)
 print_info('The Anchor info: \n{}'.format(anchor_config))
 priorbox = PriorBox(anchor_config)
 net = build_net('test',
-                size = cfg.model.input_size,
-                config = cfg.model.m2det_config)
+                size=cfg.model.input_size,
+                config=cfg.model.m2det_config)
 init_net(net, cfg, args.trained_model)
-print_info('===> Finished constructing and loading model',['yellow','bold'])
+print_info('===> Finished constructing and loading model', ['yellow', 'bold'])
 net.eval()
 with torch.no_grad():
     priors = priorbox.forward()
@@ -48,6 +48,7 @@ with torch.no_grad():
 _preprocess = BaseTransform(cfg.model.input_size, cfg.model.rgb_means, (2, 0, 1))
 detector = Detect(cfg.model.m2det_config.num_classes, cfg.loss.bkg_label, anchor_config)
 
+
 def _to_color(indx, base):
     """ return (b, r, g) tuple"""
     base2 = base * base
@@ -55,10 +56,13 @@ def _to_color(indx, base):
     r = 2 - (indx % base2) / base
     g = 2 - (indx % base2) % base
     return b * 127, r * 127, g * 127
+
+
 base = int(np.ceil(pow(cfg.model.m2det_config.num_classes, 1. / 3)))
 colors = [_to_color(x, base) for x in range(cfg.model.m2det_config.num_classes)]
-cats = [_.strip().split(',')[-1] for _ in open('data/coco_labels.txt','r').readlines()]
+cats = [_.strip().split(',')[-1] for _ in open('data/coco_labels.txt', 'r').readlines()]
 labels = tuple(['__background__'] + cats)
+
 
 def draw_detection(im, bboxes, scores, cls_inds, fps, thr=0.2):
     imgcv = np.copy(im)
@@ -80,6 +84,7 @@ def draw_detection(im, bboxes, scores, cls_inds, fps, thr=0.2):
 
     return imgcv
 
+
 im_path = args.directory
 cam = args.cam
 video = args.video
@@ -96,8 +101,9 @@ if video:
             print('No file!')
 if cam >= 0 or video:
     video_name = os.path.splitext(video_path)
-    fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
-    out_video = cv2.VideoWriter(video_name[0] + '_m2det.mp4', fourcc, capture.get(cv2.CAP_PROP_FPS), (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    out_video = cv2.VideoWriter(video_name[0] + '_m2det.mp4', fourcc, capture.get(cv2.CAP_PROP_FPS),
+                                (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 im_fnames = sorted((fname for fname in os.listdir(im_path) if os.path.splitext(fname)[-1] == '.jpg'))
 im_fnames = (os.path.join(im_path, fname) for fname in im_fnames)
 im_iter = iter(im_fnames)
@@ -107,7 +113,8 @@ while True:
             fname = next(im_iter)
         except StopIteration:
             break
-        if 'm2det' in fname: continue # ignore the detected images
+        if 'm2det' in fname:
+            continue  # ignore the detected images
         image = cv2.imread(fname, cv2.IMREAD_COLOR)
     else:
         ret, image = capture.read()
@@ -116,36 +123,36 @@ while True:
             capture.release()
             break
     loop_start = time.time()
-    w,h = image.shape[1],image.shape[0]
+    w, h = image.shape[1], image.shape[0]
     img = _preprocess(image).unsqueeze(0)
     if cfg.test_cfg.cuda:
         img = img.cuda()
-    scale = torch.Tensor([w,h,w,h])
+    scale = torch.Tensor([w, h, w, h])
     out = net(img)
     boxes, scores = detector.forward(out, priors)
-    boxes = (boxes[0]*scale).cpu().numpy()
+    boxes = (boxes[0] * scale).cpu().numpy()
     scores = scores[0].cpu().numpy()
     allboxes = []
     for j in range(1, cfg.model.m2det_config.num_classes):
-        inds = np.where(scores[:,j] > cfg.test_cfg.score_threshold)[0]
+        inds = np.where(scores[:, j] > cfg.test_cfg.score_threshold)[0]
         if len(inds) == 0:
             continue
         c_bboxes = boxes[inds]
         c_scores = scores[inds, j]
         c_dets = np.hstack((c_bboxes, c_scores[:, np.newaxis])).astype(np.float32, copy=False)
         soft_nms = cfg.test_cfg.soft_nms
-        keep = nms(c_dets, cfg.test_cfg.iou, force_cpu = soft_nms) #min_thresh, device_id=0 if cfg.test_cfg.cuda else None)
+        keep = nms(c_dets, cfg.test_cfg.iou, force_cpu=soft_nms)  # min_thresh, device_id=0 if cfg.test_cfg.cuda else None)
         keep = keep[:cfg.test_cfg.keep_per_class]
         c_dets = c_dets[keep, :]
-        allboxes.extend([_.tolist()+[j] for _ in c_dets])
+        allboxes.extend([_.tolist() + [j] for _ in c_dets])
 
     loop_time = time.time() - loop_start
     allboxes = np.array(allboxes)
-    boxes = allboxes[:,:4]
-    scores = allboxes[:,4]
-    cls_inds = allboxes[:,5]
-    print('\n'.join(['pos:{}, ids:{}, score:{:.3f}'.format('(%.1f,%.1f,%.1f,%.1f)' % (o[0],o[1],o[2],o[3]) \
-            ,labels[int(oo)],ooo) for o,oo,ooo in zip(boxes,cls_inds,scores)]))
+    boxes = allboxes[:, :4]
+    scores = allboxes[:, 4]
+    cls_inds = allboxes[:, 5]
+    print('\n'.join(['pos:{}, ids:{}, score:{:.3f}'.format('(%.1f,%.1f,%.1f,%.1f)' %
+                                                           (o[0], o[1], o[2], o[3]), labels[int(oo)], ooo) for o, oo, ooo in zip(boxes, cls_inds, scores)]))
     fps = 1.0 / float(loop_time) if cam >= 0 or video else -1
     im2show = draw_detection(image, boxes, scores, cls_inds, fps)
     # print bbox_pred.shape, iou_pred.shape, prob_pred.shape

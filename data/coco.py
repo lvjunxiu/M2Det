@@ -5,21 +5,22 @@ https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 
 Updated by: Ellis Brown, Max deGroot
 """
-
 import os
 import pickle
 import os.path
-import sys
+# import sys
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 import cv2
 import numpy as np
 import json
-import uuid
+# import uuid
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from utils.pycocotools.coco import COCO
 from utils.pycocotools.cocoeval import COCOeval
-from utils.pycocotools import mask as COCOmask
+# from utils.pycocotools import mask as COCOmask
 
 
 class COCODetection(data.Dataset):
@@ -27,7 +28,7 @@ class COCODetection(data.Dataset):
     def __init__(self, root, image_sets, preproc=None, target_transform=None,
                  dataset_name='COCO'):
         self.root = root
-        self.data_path = os.path.join(os.path.expanduser("~"),'data')
+        self.data_path = os.path.join(os.path.expanduser("~"), 'data')
         self.cache_path = os.path.join(self.data_path, 'coco_cache')
         self.image_set = image_sets
         self.preproc = preproc
@@ -36,16 +37,16 @@ class COCODetection(data.Dataset):
         self.ids = list()
         self.annotations = list()
         self._view_map = {
-            'minival2014' : 'val2014',          # 5k val2014 subset
-            'valminusminival2014' : 'val2014',  # val2014 \setminus minival2014
-            'test-dev2015' : 'test2015',
+            'minival2014': 'val2014',          # 5k val2014 subset
+            'valminusminival2014': 'val2014',  # val2014 \setminus minival2014
+            'test-dev2015': 'test2015',
         }
 
         for (year, image_set) in image_sets:
-            coco_name = image_set+year
+            coco_name = image_set + year
             data_name = (self._view_map[coco_name]
-                        if coco_name in self._view_map
-                        else coco_name)
+                         if coco_name in self._view_map
+                         else coco_name)
             annofile = self._get_ann_file(coco_name)
             _COCO = COCO(annofile)
             self._COCO = _COCO
@@ -58,13 +59,11 @@ class COCODetection(data.Dataset):
                                                   _COCO.getCatIds()))
             indexes = _COCO.getImgIds()
             self.image_indexes = indexes
-            self.ids.extend([self.image_path_from_index(data_name, index) for index in indexes ])
+            self.ids.extend([self.image_path_from_index(data_name, index) for index in indexes])
             if image_set.find('test') != -1:
                 print('test set will not load annotations!')
             else:
-                self.annotations.extend(self._load_coco_annotations(coco_name, indexes,_COCO))
-
-
+                self.annotations.extend(self._load_coco_annotations(coco_name, indexes, _COCO))
 
     def image_path_from_index(self, name, index):
         """
@@ -75,34 +74,31 @@ class COCODetection(data.Dataset):
         file_name = ('COCO_' + name + '_' +
                      str(index).zfill(12) + '.jpg')
         image_path = os.path.join(self.root, 'images',
-                              name, file_name)
+                                  name, file_name)
         assert os.path.exists(image_path), \
-                'Path does not exist: {}'.format(image_path)
+            'Path does not exist: {}'.format(image_path)
         return image_path
-
 
     def _get_ann_file(self, name):
         prefix = 'instances' if name.find('test') == -1 \
-                else 'image_info'
+            else 'image_info'
         return os.path.join(self.root, 'annotations',
-                        prefix + '_' + name + '.json')
-
+                            prefix + '_' + name + '.json')
 
     def _load_coco_annotations(self, coco_name, indexes, _COCO):
-        cache_file=os.path.join(self.cache_path,coco_name+'_gt_roidb.pkl')
+        cache_file = os.path.join(self.cache_path, coco_name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
-            print('{} gt roidb loaded from {}'.format(coco_name,cache_file))
+            print('{} gt roidb loaded from {}'.format(coco_name, cache_file))
             return roidb
 
         gt_roidb = [self._annotation_from_index(index, _COCO)
                     for index in indexes]
         with open(cache_file, 'wb') as fid:
-            pickle.dump(gt_roidb,fid,pickle.HIGHEST_PROTOCOL)
+            pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
         print('wrote gt roidb to {}'.format(cache_file))
         return gt_roidb
-
 
     def _annotation_from_index(self, index, _COCO):
         """
@@ -144,8 +140,6 @@ class COCODetection(data.Dataset):
 
         return res
 
-
-
     def __getitem__(self, index):
         img_id = self.ids[index]
         target = self.annotations[index]
@@ -155,12 +149,11 @@ class COCODetection(data.Dataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-
         if self.preproc is not None:
             img, target = self.preproc(img, target)
 
-                    # target = self.target_transform(target, width, height)
-        #print(target.shape)
+            # target = self.target_transform(target, width, height)
+        # print(target.shape)
 
         return img, target
 
@@ -181,7 +174,6 @@ class COCODetection(data.Dataset):
         img_id = self.ids[index]
         return cv2.imread(img_id, cv2.IMREAD_COLOR)
 
-
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
 
@@ -199,6 +191,7 @@ class COCODetection(data.Dataset):
     def _print_detection_eval_metrics(self, coco_eval):
         IoU_lo_thresh = 0.5
         IoU_hi_thresh = 0.95
+
         def _get_thr_ind(coco_eval, thr):
             ind = np.where((coco_eval.params.iouThrs > thr - 1e-5) &
                            (coco_eval.params.iouThrs < thr + 1e-5))[0][0]
@@ -215,7 +208,7 @@ class COCODetection(data.Dataset):
             coco_eval.eval['precision'][ind_lo:(ind_hi + 1), :, :, 0, 2]
         ap_default = np.mean(precision[precision > -1])
         print('~~~~ Mean and per-category AP @ IoU=[{:.2f},{:.2f}] '
-               '~~~~'.format(IoU_lo_thresh, IoU_hi_thresh))
+              '~~~~'.format(IoU_lo_thresh, IoU_hi_thresh))
         print('{:.1f}'.format(100 * ap_default))
         aps = list()
         for cls_ind, cls in enumerate(self._classes):
@@ -255,10 +248,10 @@ class COCODetection(data.Dataset):
             ws = dets[:, 2] - xs + 1
             hs = dets[:, 3] - ys + 1
             results.extend(
-              [{'image_id' : index,
-                'category_id' : cat_id,
-                'bbox' : [xs[k], ys[k], ws[k], hs[k]],
-                'score' : scores[k]} for k in range(dets.shape[0])])
+                [{'image_id': index,
+                  'category_id': cat_id,
+                  'bbox': [xs[k], ys[k], ws[k], hs[k]],
+                  'score': scores[k]} for k in range(dets.shape[0])])
         return results
 
     def _write_coco_results_file(self, all_boxes, res_file):
@@ -279,8 +272,8 @@ class COCODetection(data.Dataset):
 
     def evaluate_detections(self, all_boxes, output_dir):
         res_file = os.path.join(output_dir, ('detections_' +
-                                         self.coco_name +
-                                         '_results'))
+                                             self.coco_name +
+                                             '_results'))
         res_file += '.json'
         self._write_coco_results_file(all_boxes, res_file)
 

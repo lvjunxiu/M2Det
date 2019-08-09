@@ -4,10 +4,13 @@ Author: Qijie Zhao
 '''
 import math
 import os.path
+
+
 home = os.path.expanduser("~")
-ddir = os.path.join(home,"data/VOCdevkit/")
+ddir = os.path.join(home, "data/VOCdevkit/")
 VOCroot = ddir
-COCOroot = os.path.join(home,"data/coco/")
+COCOroot = os.path.join(home, "data/coco/")
+
 
 def reglayer_scale(size, num_layer, size_the):
     reg_layer_size = []
@@ -19,11 +22,13 @@ def reglayer_scale(size, num_layer, size_the):
                 reg_layer_size += [size - size_the]
     return reg_layer_size
 
+
 def get_scales(size, size_pattern):
     size_list = []
     for x in size_pattern:
         size_list += [round(x * size, 2)]
-    return  size_list
+    return size_list
+
 
 def aspect_ratio(num):
     as_ra = []
@@ -31,7 +36,8 @@ def aspect_ratio(num):
         as_ra += [[2, 3]]
     return as_ra
 
-def mk_anchors(size, multiscale_size, size_pattern, step_pattern, num_reglayer = 6, param = 2):
+
+def mk_anchors(size, multiscale_size, size_pattern, step_pattern, num_reglayer=6, param=2):
     cfg = dict()
     cfg['feature_maps'] = reglayer_scale(size, num_reglayer, param if size >= multiscale_size else 0)
     cfg['min_dim'] = size
@@ -42,4 +48,3 @@ def mk_anchors(size, multiscale_size, size_pattern, step_pattern, num_reglayer =
     cfg['variance'] = [0.1, 0.2]
     cfg['clip'] = True
     return cfg
-
